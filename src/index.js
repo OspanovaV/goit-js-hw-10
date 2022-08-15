@@ -1,19 +1,25 @@
 import './css/styles.css';
 import { fetchCountries } from './js/fetchCountries';
 import { countryСardTeemplate, countryListTemplate } from './js/markup-template';
-import { refs } from './js/refs-elements';
 
 import { Notify } from 'notiflix/build/notiflix-notify-aio';
 import debounce from 'lodash.debounce';
 
+const refs = {
+  searchBox: document.getElementById('search-box'),
+  countryList: document.querySelector('.country-list'),
+  countryInfo: document.querySelector('.country-info'),
+};
+
 const DEBOUNCE_DELAY = 300;
+
 refs.searchBox.addEventListener('input', debounce(onInputCountry, DEBOUNCE_DELAY));
 
 function onInputCountry() {
   const countryName = refs.searchBox.value.trim();
-  if (countryName === '') {
-    refs.countryInfo.innerHTML = '';
-    refs.countryList.innerHTML = '';
+  refs.countryInfo.innerHTML = '';
+  refs.countryList.innerHTML = '';
+  if (countryName === '') {    
     return;
   }
 
@@ -21,27 +27,18 @@ function onInputCountry() {
     .then(countrys => {
       if (countrys.length > 10) {
         Notify.info('Too many matches found. Please enter a more specific name.');
-        refs.countryInfo.innerHTML = '';
-        refs.countryList.innerHTML = '';
         return;
-      }
-
-      if (countrys.length <= 10) {
-        const listMarkup = countrys.map(country => countryListTemplate(country));
-        refs.countryList.innerHTML = listMarkup.join('');
-        refs.countryInfo.innerHTML = '';
-      }
-
-      if (countrys.length === 1) {
-        const markup = countrys.map(country => countryСardTeemplate(country));
-        refs.countryInfo.innerHTML = markup.join('');
-        refs.countryList.innerHTML = '';
+      } else if (countrys.length > 1 && countrys.length <= 10) {
+        refs.countryList.innerHTML = countrys.map(country => countryListTemplate(country)).join('');
+      } else if (countrys.length === 1) {
+        refs.countryInfo.innerHTML = countrys.map(country => countryСardTeemplate(country)).join('');
       }
     })
     .catch(error => {
-      Notify.failure('Oops, there is no country with that name');
-      refs.countryInfo.innerHTML = '';
-      refs.countryList.innerHTML = '';
-      return error;
-    });
+      if (error.message === '404') {
+        Notify.failure('Oops, there is no country with that name');
+      } else {
+        return console.log(error);
+      }
+    });    
 }
